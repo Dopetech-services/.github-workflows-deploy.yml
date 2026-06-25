@@ -17,21 +17,30 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
+      - name: Checkout repo
         uses: actions/checkout@v4
+
+      - name: Show repo files
+        run: |
+          pwd
+          ls -la
+          echo "---- web_admin ----"
+          ls -la web_admin || true
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Install
-        working-directory: web_admin
+      - name: Install dependencies
         run: npm install
+        working-directory: ./web_admin
 
-      - name: Build
-        working-directory: web_admin
+      - name: Build app
+        run: npm run build
+        working-directory: ./web_admin
         env:
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
           VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
@@ -39,22 +48,22 @@ jobs:
           VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
-        run: npm run build
 
       - name: Copy CNAME
-        run: cp web_admin/public/CNAME web_admin/dist/CNAME
+        run: cp ./web_admin/public/CNAME ./web_admin/dist/CNAME
 
-      - name: Upload artifact
+      - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: web_admin/dist
+          path: ./web_admin/dist
 
   deploy:
+    needs: build
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
+
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
